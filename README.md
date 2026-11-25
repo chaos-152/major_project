@@ -152,8 +152,26 @@ Evaluated across **5 independent seeds (`42–46`) $\times$ 200 continuous 41-st
 | **Continuous Open-Loop (2-frame drop)** | `5.13%` | `2,103 / 41,000` | `[4.92%, 5.35%]` | `5.09%–5.22%` | `662.0 Mbps` |
 | **Controlled ARQ (1 Sub-6 Retx)** | **`0.19%`** | **`79 / 41,000`** | **`[0.15%, 0.24%]`** | **`0.17%–0.27%`** | **`666.5 Mbps`** |
 
-### 5.5 Live Open5GS Edge-Case Observation (`rural_low`)
-Behind a `2.4 m` highway truck at dead center (`rural_low`), 28 GHz loses **`21.20 dB`** ($E_s/N_0 = +0.80\text{ dB}$) and 3.5 GHz loses **`12.66 dB`** ($E_s/N_0 = +9.34\text{ dB}$, $E_b/N_0 = +3.32\text{ dB} \to \sim 7\%$ BER). Fixed 16-QAM + RS($t=2$) fails on **both** bands, directly demonstrating the boundary where real 5G NR requires Adaptive Modulation and Coding (AMC).
+### 5.5 Live Open5GS + UERANSIM Demonstration (`ue1: 10.45.0.6 → ue2: 10.45.0.7`)
+
+A single live 14-block interactive session across the Open5GS UPF GTP-U tunnel captured every operational regime of the system:
+- **Clean 28 GHz LoS (`seq=0000`, `urban_high`, `400 MHz`):** Delivered clean on 28 GHz (`872.8 Mbps` modelled link peak).
+- **Grazing-Edge RS Repair (`seq=0001–0004`, `0008`, `0010`):** Program 2 caught corrupted wire bytes (`"HEDLO PROFESSOR"`, `"HELLO pROFESSOR"`, `"HELLK PROFESSOR"`); Program 3 repaired 1-byte and 2-byte errors in-place on 28 GHz, including a **parity-only RS fix** (`seq=0002`, `pos=[20]`) where Program 2 showed `[✓ PASS]` while Program 3 repaired parity.
+- **Pedestrian Center Blockage → 3.5 GHz Sub-6 Rescue (`seq=0005–0007`, `0009`):** Program 3 dropped uncorrectable mmWave frames and sent `NACK`; Program 1 retransmitted on 3.5 GHz (`91.9 Mbps` modelled link peak), including an RS repair on the Sub-6 leg itself (`seq=0007`: `"HELLO FROM SUB2" → "HELLO FROM SUB6"`).
+- **Scenario Bandwidth Scaling (`seq=0008–0012`):** Live switching across `urban_high` (`400 MHz`, `872.8 Mbps`), `urban_mild` (`200 MHz`, `436.4 Mbps`), `urban_low` (`100 MHz`, `218.2 Mbps`), and `rural_low` (`50 MHz`, `105.8 Mbps`).
+- **Real Open5GS RTT Contrast (`perf_counter`):** Median **1-hop 28 GHz RTT = `5.29 ms`** (`n = 8`, warm-up excluded) vs. **2-hop Sub-6 rescue RTT = `9.46 ms`** (`n = 4`).
+- **Honest AMC Boundary (`seq=0013`, `rural_low` `W = 2.4 m` truck at center):** 28 GHz loses **`21.20 dB`** ($E_s/N_0 = +0.80\text{ dB}$) and 3.5 GHz loses **`12.66 dB`** ($E_s/N_0 = +9.34\text{ dB}$, $E_b/N_0 = +3.32\text{ dB} \to \sim 7\%$ BER), exhausting both Sub-6 retries (`10.11 ms` → `14.54 ms`) and demonstrating exactly where real 5G NR requires AMC.
+
+#### Program 1 (UE 1) — Grazing/Center Switching & Final RTT Summary
+![Program 1 Edge and Center Switching](screenshots/live_p1_edge_center.png)
+![Program 1 Truck Boundary and Median RTT Summary](screenshots/live_p1_summary_rtt.png)
+
+#### Program 2 (UE 2) — Pure Mathematical CRC-16 Detector (`seq=0000–0013`)
+![Program 2 CRC-16 Detector](screenshots/live_p2_crc_detector.png)
+
+#### Program 3 (UE 2) — `GF(2^8)` RS Repair, Sub-6 Rescue & Session Summary (`92.86%`, `13/14`)
+![Program 3 RS Syndrome Decoder and Sub-6 Rescue](screenshots/live_p3_rs_resilience.png)
+![Program 3 Session Summary](screenshots/live_p3_summary.png)
 
 ---
 
